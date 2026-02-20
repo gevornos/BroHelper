@@ -1,0 +1,12 @@
+faster-whisper
+torch
+torchaudio
+silero-vad
+sounddevice
+numpy
+anthropic
+httpx
+pystray
+Pillow
+keyboard
+python-dotenv
