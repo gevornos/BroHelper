@@ -12,6 +12,7 @@ from core.brain import Brain
 from core.speaker import Speaker
 from tools.base import register_tools_to_brain
 from ui.tray import TrayIcon
+from ui.chat_window import ChatWindow
 
 logging.basicConfig(
     level=logging.INFO,
@@ -37,9 +38,13 @@ class Jarvis:
 
         self._listener = Listener(on_speech_end=self._on_speech)
 
+        # Окно чата
+        self._chat = ChatWindow(on_user_message=self._on_chat_message)
+
         self._tray = TrayIcon(
             on_toggle_listening=self._on_toggle_listening,
             on_quit=self._shutdown,
+            on_open_chat=self._on_open_chat,
         )
 
         self._processing = False
@@ -47,7 +52,11 @@ class Jarvis:
 
     def run(self):
         """Запускает Jarvis."""
-        # Горячая клавиша как резерв
+        # Запуск окна чата (скрыто)
+        self._chat.start()
+        self._chat.add_system_message("Jarvis запущен. Скажи wake-word или напиши сюда.")
+
+        # Горячая клавиша — открывает/скрывает чат
         keyboard.add_hotkey(config.HOTKEY, self._on_hotkey)
         log.info("Горячая клавиша: %s", config.HOTKEY)
 
@@ -80,37 +89,48 @@ class Jarvis:
 
             command = detect_wake_word(text)
             if command is None:
-                # Wake-слово не найдено — игнорируем
                 return
 
             if not command:
-                # Wake-слово без команды ("Братан!")
                 command = "Привет, что умеешь?"
 
             log.info("Команда: %s", command)
-
-            # Отключаем микрофон на время ответа, чтобы не слышать себя
-            self._listener.set_listening(False)
-
-            response = self._brain.think(command)
-            log.info("Ответ: %s", response)
-
-            self._speaker.speak(response)
+            self._process_command(command)
 
         except Exception as e:
             log.error("Ошибка обработки: %s", e, exc_info=True)
         finally:
-            self._listener.set_listening(True)
             self._processing = False
 
+    def _on_chat_message(self, text: str):
+        """Callback от окна чата — пользователь ввёл текст."""
+        self._process_command(text)
+
+    def _process_command(self, command: str):
+        """Общая обработка команды (из голоса или чата)."""
+        self._chat.add_user_message(command)
+
+        self._listener.set_listening(False)
+        try:
+            response = self._brain.think(command)
+            log.info("Ответ: %s", response)
+
+            self._chat.add_assistant_message(response)
+            self._speaker.speak(response)
+        except Exception as e:
+            log.error("Ошибка: %s", e, exc_info=True)
+            self._chat.add_system_message(f"Ошибка: {e}")
+        finally:
+            self._listener.set_listening(True)
+
     def _on_hotkey(self):
-        """Активация по горячей клавише Ctrl+Shift+J."""
-        if self._processing:
-            return
-        log.info("Горячая клавиша нажата — слушаю...")
-        # При нажатии горячей клавиши — просто ждём следующую фразу
-        # Listener уже работает, wake-word не нужен
-        # TODO: добавить режим "следующая фраза без wake-word"
+        """Горячая клавиша — открывает/скрывает окно чата."""
+        log.info("Горячая клавиша нажата")
+        self._chat.toggle()
+
+    def _on_open_chat(self):
+        """Открытие чата из трея."""
+        self._chat.show()
 
     def _on_toggle_listening(self, enabled: bool):
         """Переключение прослушивания из трея."""

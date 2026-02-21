@@ -15,12 +15,12 @@ ANTHROPIC_MODEL = "claude-haiku-4-5-20251001"
 HTTPS_PROXY = os.getenv("HTTPS_PROXY", "")
 
 # Wake words
-WAKE_WORDS = ["брат", "братан", "братишка", "бро"]
+WAKE_WORDS = ["брат", "братан", "братишка", "бро", "братанчик"]
 
 # Whisper
-WHISPER_MODEL = "large-v3"
-WHISPER_DEVICE = "cuda"
-WHISPER_COMPUTE_TYPE = "float16"
+WHISPER_MODEL = "medium"
+WHISPER_DEVICE = "cpu"
+WHISPER_COMPUTE_TYPE = "int8"
 WHISPER_LANGUAGE = "ru"
 
 # Audio

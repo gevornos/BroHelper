@@ -24,15 +24,17 @@ def _create_icon_image(color: str = "#4CAF50", size: int = 64) -> Image.Image:
 class TrayIcon:
     """Иконка в системном трее с меню управления."""
 
-    def __init__(self, on_toggle_listening=None, on_quit=None):
+    def __init__(self, on_toggle_listening=None, on_quit=None, on_open_chat=None):
         self._on_toggle_listening = on_toggle_listening
         self._on_quit = on_quit
+        self._on_open_chat = on_open_chat
         self._listening = True
         self._icon = None
 
     def start(self):
         """Запускает иконку в трее (блокирует поток)."""
         menu = pystray.Menu(
+            pystray.MenuItem("Открыть чат", self._open_chat, default=True),
             pystray.MenuItem(
                 lambda item: "Выкл. прослушивание" if self._listening else "Вкл. прослушивание",
                 self._toggle_listening,
@@ -61,6 +63,10 @@ class TrayIcon:
             color = "#4CAF50" if listening else "#9E9E9E"
             self._icon.icon = _create_icon_image(color)
             self._icon.title = "Jarvis — слушаю..." if listening else "Jarvis — пауза"
+
+    def _open_chat(self, icon, item):
+        if self._on_open_chat:
+            self._on_open_chat()
 
     def _toggle_listening(self, icon, item):
         self._listening = not self._listening
